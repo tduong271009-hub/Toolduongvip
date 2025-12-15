@@ -1,0 +1,14 @@
+
+<script>
+if(!localStorage.key)location='index.html';
+</script>
+<h1>GB68 TOOL</h1>
+<div id=out></div>
+<script>
+async function load(){
+ const r=await fetch('/taixiu',{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({key:localStorage.key,deviceId:localStorage.deviceId})});
+ out.innerText=JSON.stringify(await r.json(),null,2);
+}
+setInterval(load,8000);load();
+</script>

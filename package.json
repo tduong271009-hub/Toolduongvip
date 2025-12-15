@@ -1,0 +1,11 @@
+{
+  "name": "gb68",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4",
+    "mongoose": "^8",
+    "cors": "^2",
+    "node-fetch": "^3"
+  }
+}

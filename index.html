@@ -1,0 +1,14 @@
+
+<h2>Đăng nhập KEY</h2>
+<input id=key placeholder="Nhập key"><button onclick=go()>Login</button>
+<p>Mua key: <a href=https://t.me/duongtool21>@duongtool21</a></p>
+<script>
+const deviceId=localStorage.deviceId||crypto.randomUUID();
+localStorage.deviceId=deviceId;
+async function go(){
+ const r=await fetch('/check-key',{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({key:key.value,deviceId})});
+ const j=await r.json();
+ if(j.ok){localStorage.key=key.value;location='app.html'} else alert('Sai key');
+}
+</script>
