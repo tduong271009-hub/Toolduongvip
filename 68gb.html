@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>GB68  by Duongvip</title>
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #001a26, #000814);
+    overflow: hidden;
+  }
+  iframe {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+  }
+  #robot {
+    position: fixed;
+    top: 50px;
+    left: 50px;
+    width: 120px;
+    cursor: grab;
+    z-index: 9999;
+    touch-action: none; /* Cho phép kéo trên cảm ứng */
+  }
+  #logout {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: #00ccff;
+    color: #000;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+  }
+  #balance {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #00ccff;
+    color: #000;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    z-index: 10000;
+  }
+</style>
+</head>
+<body>
+
+<div id="logout" onclick="window.location.href='index.html'">Đăng xuất</div>
+<div id="balance">0đ</div>
+
+<img id="robot" src="https://i.postimg.cc/63bdy9D9/robotics-1.gif" alt="Robot">
+
+<iframe src="https://68gbvn88.biz/?code=19501281"></iframe>
+<script>
+(() => {
+  const API_URL = "https://six8-api-cug7.onrender.com/api/taixiu";
+  const POLL_MS = 8000;
+  const PROGRESS_FPS = 30;
+
+  const botWrap = document.getElementById('botWrap');
+  const statusDot = document.getElementById('statusDot');
+  const duDoanEl = document.getElementById('duDoan');
+  const tinCayEl = document.getElementById('tinCay');
+  const tiLeEl = document.getElementById('tiLe');
+  const phienEl = document.getElementById('phien');
+  const updatedEl = document.getElementById('updatedAt');
+  const progressBar = document.getElementById('progressBar');
+  const hint = document.getElementById('hint');
+  const summaryLine = document.getElementById('summaryLine');
+
+  const POS_KEY = 'sunwin_bot_pos_v2';
+  function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
+  function restorePos(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+      if(saved){
+        botWrap.style.left = clamp(saved.x, 0, window.innerWidth - botWrap.offsetWidth) + 'px';
+        botWrap.style.top  = clamp(saved.y, 0, window.innerHeight - botWrap.offsetHeight) + 'px';
+      }
+    }catch(e){}
+  }
+  function savePos(){
+    localStorage.setItem(POS_KEY, JSON.stringify({x:botWrap.offsetLeft, y:botWrap.offsetTop}));
+  }
+
+  let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+  function onPointerDown(e){
+    dragging = true;
+    hint.style.display = 'none';
+    botWrap.setPointerCapture(e.pointerId);
+    startX = e.clientX; startY = e.clientY;
+    startLeft = botWrap.offsetLeft; startTop = botWrap.offsetTop;
+  }
+  function onPointerMove(e){
+    if(!dragging) return;
+    botWrap.style.left = clamp(startLeft + (e.clientX - startX), 0, window.innerWidth - botWrap.offsetWidth) + 'px';
+    botWrap.style.top  = clamp(startTop + (e.clientY - startY), 0, window.innerHeight - botWrap.offsetHeight) + 'px';
+  }
+  function onPointerUp(e){
+    if(!dragging) return;
+    dragging = false;
+    botWrap.releasePointerCapture(e.pointerId);
+    savePos();
+  }
+  botWrap.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('resize', restorePos);
+
+  function setOnline(on){
+    statusDot.style.background = on ? '#22c55e' : '#f97316';
+    statusDot.style.boxShadow = on ? '0 0 0 6px #16a34a22' : '0 0 0 6px #ff7d1a22';
+  }
+  function fmtTime(ts){
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  }
+
+  async function pull(){
+    try{
+      const resp = await fetch(API_URL, {cache:'no-store'});
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const j = await resp.json();
+
+      const phien  = Number(j.phien) + 1;
+      const du     = j.du_doan ?? '—';
+      const tin    = j.do_tin_cay ?? '—';
+      const tl     = j.ty_le_thang_lich_su ?? '—';
+
+      duDoanEl.textContent = du;
+      tinCayEl.textContent = tin;
+      tiLeEl.textContent = tl;
+      phienEl.textContent = phien;
+
+      // màu sắc trực quan
+      tiLeEl.style.color = '#22d3ee';
+      tinCayEl.style.color = '#facc15';
+      const low = du.toLowerCase();
+      if(low.includes('tài') || low.includes('tai')){
+        duDoanEl.style.color = '#22d3ee';
+      } else if(low.includes('xỉu') || low.includes('xiu')){
+        duDoanEl.style.color = '#fca5a5';
+      } else {
+        duDoanEl.style.color = '#eaf6ff';
+      }
+
+      summaryLine.textContent = `${tl} • ${tin} • ${du} • Phiên: ${phien}`;
+      updatedEl.textContent = `Cập nhật lúc ${fmtTime(Date.now())}`;
+      setOnline(true);
+    }catch(err){
+      setOnline(false);
+      updatedEl.textContent = 'Lỗi tải dữ liệu, sẽ thử lại…';
+    }
+  }
+
+  let progress = 0;
+  function loopProgress(){
+    progress += (1/(POLL_MS/ (1000/PROGRESS_FPS)));
+    if(progress >= 1){
+      progress = 0;
+      pull();
+    }
+    progressBar.style.inset = `0 ${(1 - progress) * 100}% 0 0`;
+    requestAnimationFrame(loopProgress);
+  }
+
+  restorePos();
+  pull();
+  setInterval(pull, POLL_MS);
+  requestAnimationFrame(loopProgress);
+  setTimeout(()=> hint.style.display='none', 4000);
+})();
+</script>
+</body>
+</html>
+<script>
+  const robot = document.getElementById('robot');
+  let offsetX, offsetY, dragging = false;
+
+  robot.addEventListener('pointerdown', e => {
+    dragging = true;
+    offsetX = e.clientX - robot.offsetLeft;
+    offsetY = e.clientY - robot.offsetTop;
+    robot.setPointerCapture(e.pointerId);
+  });
+
+  robot.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    robot.style.left = (e.clientX - offsetX) + 'px';
+    robot.style.top = (e.clientY - offsetY) + 'px';
+  });
+
+  robot.addEventListener('pointerup', e => {
+    dragging = false;
+    robot.releasePointerCapture(e.pointerId);
+  });
+</script>
+
+</body>
+</html>
